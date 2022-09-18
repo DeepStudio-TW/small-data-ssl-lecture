@@ -1,2 +1,5 @@
 .ipy*
-
+*.tar.gz
+mnistm_half
+*.bin
+__pycache__
