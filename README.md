@@ -1,14 +1,13 @@
-# 
-Simple implementation of PISA algorithm on a small dataset using MMDetection
+# Deep Learning with Small Data and Self-Supervised Learning
 
 ## Please Flollow These Steps
 🔥0.Data Loading[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
 
-🔥1.MMDet & Inference With Pretrained Weight[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)]()
+🔥1.Metric Learning Models[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepStudio-TW/2_FSL_Models.ipynb)
 
-🔥2.Training Faster RCNN with PISA[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ShuYuHuang/cupoy-small-data/blob/main/3_Few Shot Learning- 2 Transfer Learning.ipynb)
+🔥2.Transfer Learning- Styled Metric Learning[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepStudio-TW/small-data-ssl-lecture/blob/main/3_FSL_Transfer_Learning.ipynb)
 
-🔥3.Test & Inference[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/ShuYuHuang/pisa-simple-example/blob/main/3_Test_Inference_PISA.ipynb)
+🔥3.Meta Learning- Styled Metric Learning[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepStudio-TW/small-data-ssl-lecture/blob/main/4_FSL_Meta_Learning.ipynb)
 
 
 
