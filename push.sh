@@ -1,4 +1,4 @@
 git pull
 git add .
-git commit -m "Aggregated from adaptation project"
+git commit -m "fix"
 git push
