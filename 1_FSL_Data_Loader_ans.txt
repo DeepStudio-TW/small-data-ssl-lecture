@@ -1,0 +1,7 @@
+1. 請調整Transfer Learning使用的 Data Loader，使得loader只會load出數字3,4,5，並且每個數字只會load出4個，並且不要shuffle
+sampler=FewShotSampler(target_dataset,target_dataset.classes[3:6],4,repeats=1,shuffle=False)
+
+2. 限制source dataset只用數字3,4,5,6,7,8來訓練3-way-8-shot，請試著製作相關data loader中的 dataset object
+WAYS=3
+SHOTS=8
+source_meta_dataset=MetaLearningDataset(source_dataset,source_dataset.classes[3:9],WAYS,SHOTS,repeats=1)

@@ -35,7 +35,7 @@ class FewShotSampler(tud.Sampler):
         return len(self.class_samples)
     def __iter__(self):
         if self.shuffle:
-            np.random.shuffle(self.class_samples)
+            return iter(np.random.permutation(self.class_samples))
         return iter(self.class_samples)
     
 class MetaLearningDataset(tud.IterableDataset):
@@ -43,21 +43,26 @@ class MetaLearningDataset(tud.IterableDataset):
         super().__init__()
         self.ds_object=ds_object
         self.classes=classes
+        self.maps={v:i for i,v in enumerate(self.classes)} # 原本class順序與新順序對照表
         self.n_classes=len(classes)
+        
         self.ways=ways
         self.shots=shots
         self.repeats=repeats
+        
         self.class_sample_list=self.get_class_samples() #此處每個class分開做，之後要依照class抽取較方便
         self.class_sample_len=[*map(len,self.class_sample_list)]
         
     def get_class_samples(self):
         # 將class分開儲存
         indices_c=[[] for _ in range(self.n_classes)]
+        
         # 屬於每個class的index儲存在對應class的list中
         for ii,yy in enumerate(self.ds_object.targets):
-            indices_c[yy].append(ii)
+            yy=self.ds_object.classes[yy]
+            if yy in self.classes:
+                indices_c[self.maps[yy]].append(ii)
         return indices_c
-    
     
     def get_x_in_ds(self,idx):
         return self.ds_object[idx][0]
