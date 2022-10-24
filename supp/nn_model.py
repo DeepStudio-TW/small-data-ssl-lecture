@@ -54,7 +54,8 @@ class FeatureExtractor(nn.Module):
 #### Head
 
 def cosine(x,w):
-    return F.linear(F.normalize(x,dim=-1), F.normalize(w,dim=-1))
+    return F.linear(F.normalize(x,dim=1), F.normalize(w,dim=1))
+
 def euc_dist(x,w):
     return F.pairwise_distance(x, w, 2)
 class MetricLayer(nn.Module):
@@ -68,41 +69,69 @@ class MetricLayer(nn.Module):
     
 #### Model
 class ClasModel(nn.Module):
-    def __init__(self,ways,shots,backbone,head,metric=cosine):
+    def __init__(self,ways,shots,backbone,head,metric=cosine,dropout=False,fp16=False,using_insightface=False):
         super().__init__()
         self.ways=ways
         self.shots=shots
-
+        self.fp16=fp16
+        self.using_insightface=using_insightface
         self.backbone=backbone
         self.head=head
         self.metric=metric
+        self.dropout=dropout
+        
+        neck_layers=[]
+        if using_insightface:
+            neck_layers.append(nn.Dropout(0.2))
+            neck_layers.append(nn.AdaptiveAvgPool2d((1,1)))
+            neck_layers.append(nn.Flatten(1))
+            neck_layers.append(nn.Linear(512, self.backbone.num_features))
+            if dropout:
+                neck_layers.append(nn.Dropout(0.2))
+        elif dropout:
+            neck_layers.append(nn.Dropout(0.2))
+            
+        self.neck=nn.Sequential(*neck_layers)
+        
+        
         
 class Baseline(ClasModel):
-    def __init__(self,ways,backbone,head):
+    def __init__(self,ways,backbone,head,metric=cosine,dropout=False,fp16=False,using_insightface=False):
         assert(backbone is not None)
-        super().__init__(ways,None,backbone,head)
+        super().__init__(ways,None,backbone,head,metric,dropout,fp16,using_insightface)
+        
     def forward(self,data,label=None):
+        
         # Transfer Learing: backbone+ output head
-        hidden=self.backbone(data)
-        logits=self.head(hidden)
+        latent=self.backbone(data)
+        if self.neck:
+            latent=self.neck(latent)
+        logits=self.head(latent)
         return logits
 
 class SiameseNet(ClasModel):
-    def __init__(self,backbone,metric=cosine):
-        super().__init__(2,None,backbone,None,metric)
+    def __init__(self,backbone,metric=cosine,dropout=False,fp16=False,using_insightface=False):
+        super().__init__(2,None,backbone,None,metric,dropout,fp16,using_insightface)
+
     def forward(self,data,label=None):
         # 進Embedding
-        latent=[*map(self.backbone,data.transpose(0,1))]
+        latent=[*map(self.backbone,data.transpose(0,1))]    
+        if self.neck:
+            latent=[*map(self.neck,latent)]
         # latent算metric 這邊用cosine
         logits=torch.stack([*map(self.metric,latent[0],latent[1])],dim=0)
         return logits
 
 class PrototypicalNet(ClasModel):
-    def __init__(self,ways,shots,backbone,metric=cosine):
-        super().__init__(ways,shots,backbone,None,metric)
+    def __init__(self,ways,shots,backbone,metric=cosine,dropout=False,fp16=False):
+        super().__init__(ways,shots,backbone,None,metric,dropout,fp16,using_insightface)
+        
     def meta_forward(self,dataset,label=None):
         # 全部進embedding
-        latent=torch.stack([*map(self.backbone,dataset)],dim=0)
+        latent=torch.stack([*map(self.backbone,x)],dim=0)
+        if self.neck:
+            latent=[*map(self.neck,latent)]
+        
         latent_q,latent_s=latent[:,self.ways*self.shots:],latent[:,:self.ways*self.shots]
         # 計算 prototypes
         latent_proto=torch.stack([torch.mean(l,dim=1) for l in torch.split(latent_s,self.shots,dim=1)],dim=1)
@@ -110,14 +139,23 @@ class PrototypicalNet(ClasModel):
         return logits
     def save_prototypes(self,dataset):
         with torch.no_grad():
-            latent_s=self.backbone(dataset)
+            if self.neck:
+                x=self.neck(dataset)
+            else:
+                x=dataset
+            latent_s=self.backbone(x)
+            
         self.weight=nn.Parameter(
             torch.stack(
                 [torch.mean(l,dim=0) for l in torch.split(latent_s,self.shots,dim=0)]
             ,dim=0)
-            )
+        )
     def forward(self,data,label=None):
-        latent_q=self.backbone(data)
+        if self.neck:
+            x=self.neck(data)
+        else:
+            x=dataset
+        latent_q=self.backbone(x)
         logits=self.metric(latent_q,self.weight)
         return logits
 #### Loss
