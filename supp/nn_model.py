@@ -123,12 +123,12 @@ class SiameseNet(ClasModel):
         return logits
 
 class PrototypicalNet(ClasModel):
-    def __init__(self,ways,shots,backbone,metric=cosine,dropout=False,fp16=False):
+    def __init__(self,ways,shots,backbone,metric=cosine,dropout=False,fp16=False,using_insightface=False):
         super().__init__(ways,shots,backbone,None,metric,dropout,fp16,using_insightface)
         
     def meta_forward(self,dataset,label=None):
         # 全部進embedding
-        latent=torch.stack([*map(self.backbone,x)],dim=0)
+        latent=torch.stack([*map(self.backbone,dataset)],dim=0)
         if self.neck:
             latent=[*map(self.neck,latent)]
         
@@ -154,7 +154,7 @@ class PrototypicalNet(ClasModel):
         if self.neck:
             x=self.neck(data)
         else:
-            x=dataset
+            x=data
         latent_q=self.backbone(x)
         logits=self.metric(latent_q,self.weight)
         return logits
@@ -207,9 +207,9 @@ class AddMarginLoss(nn.Module):
         return self.loss_fn(metric,label)
 
 class ArcMarginLoss(AddMarginLoss):
-    def __init__(self, s=32.0, m=0.40, easy_margin=False,loss_fn=FocalLoss()):
+    def __init__(self, s=32.0, m=0.40,ways=10, easy_margin=False,loss_fn=FocalLoss()):
         ## 使用AddMarginLoss的初始參數設定方式
-        super().__init__(s,m,loss_fn)
+        super().__init__(s,m,ways,loss_fn)
         
         ## 確定是否使用easy margin
         self.easy_margin = easy_margin
@@ -236,7 +236,7 @@ class ArcMarginLoss(AddMarginLoss):
             cos_phi = torch.where(cosine > self.th, cos_phi, cosine - self.mm)
             
         # 將onehot沒選中的類別不套用margin，onehot選中的套用margin    
-        one_hot=F.one_hot(label, num_classes=- 1).to(torch.float32)
+        one_hot=F.one_hot(label, num_classes=self.ways).to(torch.float32)
         metric = (one_hot * cos_phi) + ((1.0 - one_hot) * cosine)
         # 將輸出對比放大
         metric *= self.s
