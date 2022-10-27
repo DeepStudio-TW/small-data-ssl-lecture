@@ -160,25 +160,25 @@ class PrototypicalNet(ClasModel):
         return logits
 #### Loss
 class FocalLoss(nn.Module):
-    def __init__(self, gamma=2, eps=1e-10):
+    def __init__(self, gamma=2, eps=1e-10,ce=nn.CrossEntropyLoss()):
         super().__init__()
         self.gamma = gamma
         self.eps = torch.tensor(eps,dtype=torch.float32)
-        self.ce = nn.CrossEntropyLoss()
+        self.ce = ce
     def forward(self,  y_pred,y_true):
         # 計算cross entropy
-        logp = self.ce(y_pred+self.eps, y_true)
+        L=self.ce(y_pred+self.eps, y_true)
         # 計算乘上gamma次方後的entropy反方機率(將對比放大)
-        p = torch.exp(-logp)
-        loss = (1 - p) ** self.gamma * logp
+        p = torch.exp(-L)
+        loss = (1 - p) ** self.gamma * L
         return loss.mean()
     
 class ContrastiveLoss(nn.Module):
     def __init__(self,m=1):
         super().__init__()
         self.m=m
-        self.activation=torch.sigmoid
-        self.loss_fn=nn.BCELoss()
+        self.activation=torch.sigmoid # 給cosine similarity用的，加強output contrast
+        self.loss_fn=nn.BCELoss() # 給cosine similarity用的，加強output contrast
         self.z=torch.tensor(0.,dtype=torch.float32,requires_grad=False)
     def forward(self, y_pred,y_true):
         # 兩者同組時，算square
@@ -205,18 +205,22 @@ class AddMarginLoss(nn.Module):
         # 將輸出對比放大
         metric *= self.s
         return self.loss_fn(metric,label)
-    
-class ArcMarginLoss(AddMarginLoss):
-    def __init__(self, s=32.0, m=0.40,ways=10, easy_margin=False,loss_fn=FocalLoss()):
-        super().__init__(s,m,ways,loss_fn)
 
+class ArcMarginLoss(AddMarginLoss):
+    def __init__(self, s=32.0, m=0.40, easy_margin=False,loss_fn=FocalLoss()):
+        ## 使用AddMarginLoss的初始參數設定方式
+        super().__init__(s,m,loss_fn)
+        
+        ## 確定是否使用easy margin
         self.easy_margin = easy_margin
+        ## 預先算好arc margin代表的cosine值、sine 值
         self.cos_m = math.cos(m)
         self.sin_m = math.sin(m)
 
-        # make the function cos(theta+m) monotonic decreasing while theta in [0°,180°]
+        # phi 在[0°,180°]以內的話，讓cos(phi+m)單調遞增
         self.th = math.cos(math.pi - m)
         self.mm = math.sin(math.pi - m) * m
+        # 避免除以0發生，給一個輔助微小值
         self.eps = 1e-6
     def forward(self, cosine, label=None):
         sine = torch.sqrt(1.0 - torch.pow(cosine, 2) + self.eps)
@@ -232,7 +236,7 @@ class ArcMarginLoss(AddMarginLoss):
             cos_phi = torch.where(cosine > self.th, cos_phi, cosine - self.mm)
             
         # 將onehot沒選中的類別不套用margin，onehot選中的套用margin    
-        one_hot=F.one_hot(label, num_classes=self.ways).to(torch.float32)
+        one_hot=F.one_hot(label, num_classes=- 1).to(torch.float32)
         metric = (one_hot * cos_phi) + ((1.0 - one_hot) * cosine)
         # 將輸出對比放大
         metric *= self.s
