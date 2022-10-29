@@ -1,5 +1,12 @@
 .ipy*
+*.csv
 *.tar.gz
 mnistm_half
+source*
+val
+target_*
+val_*
+ans.csv
+SampleSubmission.csv
 *.bin
 __pycache__
