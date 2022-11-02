@@ -6,6 +6,8 @@ source*
 val
 target_*
 val_*
+meta_source*
+meta_val*
 ans.csv
 SampleSubmission.csv
 *.bin
