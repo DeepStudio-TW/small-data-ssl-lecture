@@ -9,4 +9,6 @@
 
 🔥4.Meta Learning- Styled Metric Learning[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepStudio-TW/small-data-ssl-lecture/blob/main/4_FSL_Meta_Learning.ipynb)
 
+🔥HW. Example with Transfer Learning[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepStudio-TW/small-data-ssl-lecture/blob/main/hw_Example_Transfer_Learning.ipynb)
+
 🔥HW. Example with Meta Learning[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/DeepStudio-TW/small-data-ssl-lecture/blob/main/hw_Example_Meta_Learning.ipynb)
